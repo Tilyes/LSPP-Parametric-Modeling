@@ -1,0 +1,58 @@
+/* LS-SCRIPT */
+/* 脚本功能：创建一个包含 25 个壳单元的平板，并提取以下信息：
+ *   1. 模型中的节点 / 单元总数
+ *   2. 最大的节点 / 单元 ID
+ *   3. 节点 ID 数组
+ *   4. 最后一个单元的节点连接关系
+ */
+define:
+Float MyExpressFunc(Float tt)  /* 主函数，接收一个浮点参数（未使用） */
+{
+   Float ret;                        /* 返回值 */
+   Int i, id, numnodes, numelem;     /* 循环变量、临时 ID、节点数、单元数 */
+   Int lnodeid, lelemid;             /* 最大节点 ID、最大单元 ID */
+   char p[128];                      /* 字符串缓冲区，用于构造命令和输出 */
+   Int *nodeids;                     /* 动态分配的节点 ID 数组指针 */
+
+   /* 构造命令：创建 5x5 的四边形壳网格（共 25 个单元） */
+   strcpy(p,"meshing 4pshell create 5 5 0 0 0 10 0 0 10 10 0 0 10  0");
+   ExecuteCommand(p);
+
+   /* 接受生成的网格，指定起始单元 ID=101、起始节点 ID=501、单元类型 shell_4p */
+   strcpy(p,"meshing 4pshell accept 1 101 501 shell_4p");
+   ExecuteCommand(p);
+   ExecuteCommand("ac");
+
+   numnodes = SCLGetDataCenterInt("num_nodes");
+   sprintf(p,"No. of nodes in model = %d",numnodes);
+   Echo(p);
+   numelem = SCLGetDataCenterInt("num_elem");
+   sprintf(p,"No. of elements in model = %d",numelem);
+   Echo(p);
+   lnodeid = SCLGetDataCenterInt("largest_node_id");
+   sprintf(p,"Largest node id = %d",lnodeid);
+   Echo(p);
+   lelemid = SCLGetDataCenterInt("largest_element_id");
+   sprintf(p,"Largest element id = %d",lelemid);
+   Echo(p);
+
+   nodeids = malloc(numnodes*sizeof(Int));
+   id = SCLGetDataCenterIntArray("node_ids",&nodeids,0,0);
+   Echo("Node Ids:");
+   for(i=0; i<numnodes; i = i+1)
+   {
+     id = nodeids[i];
+     sprintf(p, "inode=%d, uid=%d", i,id);
+     Echo(p);
+   }
+
+   id = SCLGetDataCenterIntArray("element_connectivity",&nodeids,SHELL,lelemid);
+   sprintf(p, "ele id=%d, connectivity=%d,%d,%d,%d",
+           lelemid,nodeids[0],nodeids[1],nodeids[2],nodeids[3]);
+   Echo(p);
+
+   free(nodeids);
+   ret = 1.0;
+   return (ret);
+}
+MyExpressFunc(1.0);

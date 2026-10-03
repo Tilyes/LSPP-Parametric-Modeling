@@ -1,0 +1,5 @@
+*.k
+*.d3plot
+*.cfile.bak
+lspost.cfile
+lspost.msg

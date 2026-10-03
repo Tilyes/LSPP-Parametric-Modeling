@@ -1,0 +1,415 @@
+/*LS-SCRIPT*//*Script to create a PC column*/
+/* -------------------------------------------------------------------------- */
+/*  PC 柱（预制混凝土柱）水平冲击模型 —— 参数化建模脚本                        */
+/*                                                                            */
+/*  运行方式：LS-PrePost -> Misc. -> Run SCL -> Load 选择本文件 -> Run         */
+/*  生成内容：Foundation / CIPC / Column / Truck 四个实体 Part，               */
+/*            纵筋(下/套筒段/上/基础)、箍筋(柱箍/基础箍) 等梁单元 Part，        */
+/*            以及供 cfile 使用的 Part_List 与 Node_Set。                      */
+/*  几何单位：mm                                                                */
+/*  测试环境：LS-PrePost(R) 2025 R1 (v4.12.11DP)                                */
+/* -------------------------------------------------------------------------- */
+
+define:void main(void){
+    Int i, id, numnodes, numelem, numedges;
+    Int lnodeid, lelemid;
+    char p[256];
+    Int *nodeids;
+    Int elembase,elemhead,elemcar;
+
+    Int h, b, l, basea, baseb, basel, linkl, linkrl, c, c2;
+    Float meshsize;
+    h = 250;
+    b = 250;
+    l = 1500;
+    basea = 900;
+    baseb = 600;
+    basel = 400;
+    linkl = 300;
+    linkrl = 100;
+    meshsize = 12.5;
+    c = 37.5;
+    c2 = 50;
+
+    Int carl,carh,carw,dashH,dis;
+    carl = 1000;
+    carw = 600;
+    carh = 200;
+    dashH = 500;
+    dis = 2;
+
+    Float v;
+    v = 2;
+
+    Int choopspace, bhoopaspace, bhoopbspace, numbhoopa, numbhoopb;
+    choopspace = 75;
+    bhoopaspace = 50;
+    bhoopbspace = 50;
+    numbhoopa = 11;
+    numbhoopb = 17;
+
+    /* Foundation  */
+    sprintf(p, "meshing boxsolid create %d %d %d %d %d 0 %f %f %f 0",
+        -basea/2,-baseb/2,-basel,basea/2,baseb/2,
+        basea/meshsize,baseb/meshsize,basel/meshsize);
+    ExecuteCommand(p);
+    strcpy(p,"meshing boxsolid accept 1 1 1 Foundation");
+    ExecuteCommand(p);
+    ExecuteCommand("ac");
+    elembase = SCLGetDataCenterInt("num_elem");
+
+    /* CIPC */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem = SCLGetDataCenterInt("num_elem");
+    numelem = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p, "meshing boxsolid create %d %d 0 %d %d %d %f %f %f 0",
+        -b/2,-h/2,b/2,h/2,linkl,
+        b/meshsize,h/meshsize,linkl/meshsize);
+    ExecuteCommand(p);
+    /* 原稿此处写作 strcpy(p,"... accept 2 &numelem &numnodes CIPC");  已按注释意图改为 sprintf */
+    sprintf(p,"meshing boxsolid accept 2 %d %d CIPC",numelem,numnodes);
+    ExecuteCommand(p);
+    ExecuteCommand("ac");
+
+    /* column  */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem = SCLGetDataCenterInt("num_elem");
+    numelem = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p, "meshing boxsolid create %d %d %d %d %d %d %f %f %f 0",
+        -b/2,-h/2,linkl,b/2,h/2,l,
+        b/meshsize,h/meshsize,(l-linkl)/meshsize);
+    ExecuteCommand(p);
+    /* 原稿此处写作 strcpy(p,"... accept 3 &numelem &numnodes Column");  已按注释意图改为 sprintf */
+    sprintf(p,"meshing boxsolid accept 3 %d %d Column",numelem,numnodes);
+    ExecuteCommand(p);
+    ExecuteCommand("ac");
+
+    /* Truck  */
+
+    elemcar = SCLGetDataCenterInt("num_elem") + 1;
+
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem = SCLGetDataCenterInt("num_elem");
+    numelem = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p, "meshing boxsolid create %d %d %d %d %d %d %f %f %f 0",
+        -(b/2+dis+carl),-carw/2,(dashH-carh/2),-(b/2+dis),carw/2,dashH+carh/2,
+        carl/meshsize,carw/meshsize,carh/meshsize);
+    ExecuteCommand(p);
+    /* 原稿此处写作 strcpy(p,"... accept 4 &numelem &numnodes Truck");  已按注释意图改为 sprintf */
+    sprintf(p,"meshing boxsolid accept 4 %d %d Truck",numelem,numnodes);
+    ExecuteCommand(p);
+    ExecuteCommand("ac");
+
+
+    /* down rebar  */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem = SCLGetDataCenterInt("num_elem");
+    numelem = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c),(-basel+c2),(h/2-c),(b/2-c),(linkl/2-linkrl/2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c),(-basel+c2),-(h/2-c),(b/2-c),(linkl/2-linkrl/2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),(-basel+c2),-(h/2-c),-(b/2-c),(linkl/2-linkrl/2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c),(-basel+c2),(h/2-c),-(b/2-c),(linkl/2-linkrl/2));
+    ExecuteCommand(p);
+    ExecuteCommand("genselect geomobject add geomobject 1e 2 3 4");
+    sprintf(p,"elgenerate beam bycurve 6 %d 0 1 %f", numelem, meshsize );
+    ExecuteCommand(p);
+    ExecuteCommand("elgenerate accept");
+    ExecuteCommand("genselect clear");
+
+
+    /* link rebar  */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem  = SCLGetDataCenterInt("num_elem");
+    numelem  = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c),(linkl/2-linkrl/2),(h/2-c),(b/2-c),(linkl/2+linkrl/2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c),(linkl/2-linkrl/2),-(h/2-c),(b/2-c),(linkl/2+linkrl/2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),(linkl/2-linkrl/2),-(h/2-c),-(b/2-c),(linkl/2+linkrl/2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c),(linkl/2-linkrl/2),(h/2-c),-(b/2-c),(linkl/2+linkrl/2));
+    ExecuteCommand(p);
+    ExecuteCommand("genselect geomobject add geomobject 5e 6 7 8");
+    sprintf(p,"elgenerate beam bycurve 7 %d 0 1 %f", numelem, meshsize );
+    ExecuteCommand(p);
+    ExecuteCommand("elgenerate accept");
+    ExecuteCommand("genselect clear");
+
+    /* up rebar  */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem  = SCLGetDataCenterInt("num_elem");
+    numelem  = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c),(linkl/2+linkrl/2),(h/2-c),(b/2-c),(l-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c),(linkl/2+linkrl/2),-(h/2-c),(b/2-c),(l-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),(linkl/2+linkrl/2),-(h/2-c),-(b/2-c),(l-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c),(linkl/2+linkrl/2),(h/2-c),-(b/2-c),(l-c));
+    ExecuteCommand(p);
+    ExecuteCommand("genselect geomobject add geomobject 9e 10 11 12");
+    sprintf(p,"elgenerate beam bycurve 8 %d 0 1 %f", numelem, meshsize );
+    ExecuteCommand(p);
+    ExecuteCommand("elgenerate accept");
+    ExecuteCommand("genselect clear");
+
+    /* foot rebar  */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem = SCLGetDataCenterInt("num_elem");
+    numelem = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c),(-basel+c2),(h/2-c)+150,(b/2-c),(-basel+c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c),(-basel+c2),-(h/2-c)-150,(b/2-c),(-basel+c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),(-basel+c2),-(h/2-c)-150,-(b/2-c),(-basel+c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c),(-basel+c2),(h/2-c)+150,-(b/2-c),(-basel+c2));
+    ExecuteCommand(p);
+    ExecuteCommand("genselect geomobject add geomobject 13e 14 15 16");
+    sprintf(p,"elgenerate beam bycurve 12 %d 0 1 %f", numelem, meshsize );
+    ExecuteCommand(p);
+    ExecuteCommand("elgenerate accept");
+    ExecuteCommand("genselect clear");
+
+
+    numedges = 16;
+
+    /* column hoop  */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem  = SCLGetDataCenterInt("num_elem");
+    numelem  = numelem + 1;
+    numnodes = numnodes + 1;
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c), c2,-(h/2-c),(b/2-c), c2);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c), c2,-(h/2-c),-(b/2-c),c2);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),c2,(h/2-c),-(b/2-c),c2);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c), c2,(h/2-c),(b/2-c), c2);
+    ExecuteCommand(p);
+    sprintf(p,"occtransform translate 0 0 1 %d copy %d %de %d %d %d",
+        choopspace, 14,(numedges+1),(numedges+2),(numedges+3),(numedges+4));
+    ExecuteCommand(p);
+    numedges = numedges + 4*15;
+
+
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c),(-c2),-(h/2-c),(b/2-c),(-c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c),(-c2),-(h/2-c),-(b/2-c),(-c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),-c2,(h/2-c),-(b/2-c),(-c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c),(-c2),(h/2-c),(b/2-c),(-c2));
+    ExecuteCommand(p);
+    sprintf(p,"occtransform translate 0 0 -1 %d copy %d %de %d %d %d",
+        choopspace, 3,(numedges+1),(numedges+2),(numedges+3),(numedges+4));
+    ExecuteCommand(p);
+    numedges = numedges + 4*4;
+
+
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c),(l-c2),-(h/2-c),(b/2-c),(l-c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c),(l-c2),-(h/2-c),-(b/2-c),(l-c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),(l-c2),(h/2-c),-(b/2-c),(l-c2));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c),(l-c2),(h/2-c),(b/2-c),(l-c2));
+    ExecuteCommand(p);
+    sprintf(p,"occtransform translate 0 0 -1 %d copy %d %de %d %d %d",
+        50, 6, (numedges+1),(numedges+2),(numedges+3),(numedges+4));
+    ExecuteCommand(p);
+    numedges = numedges +  4*7;
+
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),(b/2-c),0,-(h/2-c),(b/2-c),0);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),(b/2-c),0,-(h/2-c),-(b/2-c),0);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(h/2-c),-(b/2-c),0,(h/2-c),-(b/2-c),0);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (h/2-c),-(b/2-c),0,(h/2-c),(b/2-c),0);
+    ExecuteCommand(p);
+    numedges = numedges +  4*1;
+
+    for(i=numedges-4*(15+4+7+1)+1;i<=numedges;i=i+1) {
+        sprintf(p,"genselect geomobject add geomobject %de",i);
+        ExecuteCommand(p);
+    }
+    sprintf(p,"elgenerate beam bycurve 9 %d 0 1 %f", numelem, meshsize);
+    ExecuteCommand(p);
+    ExecuteCommand("elgenerate accept");
+    ExecuteCommand("genselect clear");
+
+    /* base hoop  */
+    numnodes = SCLGetDataCenterInt("num_nodes");
+    numelem  = SCLGetDataCenterInt("num_elem");
+    numelem  = numelem + 1;
+    numnodes = numnodes + 1;
+
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),-(baseb/2-c),-(basel-c),-(basea/2-c),-(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),-(baseb/2-c),-(basel-c),-(basea/2-c),-(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),-(baseb/2-c),-c,(basea/2-c),-(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),-(baseb/2-c),-c,(basea/2-c),-(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),(baseb/2-c),-(basel-c),-(basea/2-c),(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),(baseb/2-c),-(basel-c),-(basea/2-c),(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),(baseb/2-c),-c,(basea/2-c),(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),(baseb/2-c),-c,(basea/2-c),(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"occtransform translate 0 1 0 %d copy %d %de %d %d %d",
+        bhoopaspace,(numbhoopa+1)/2,(numedges+1),(numedges+2),(numedges+3),(numedges+4));
+    ExecuteCommand(p);
+    sprintf(p,"occtransform translate 0 -1 0 %d copy %d %de %d %d %d",
+        bhoopbspace,(numbhoopa+1)/2,(numedges+5),(numedges+6),(numedges+7),(numedges+8));
+    ExecuteCommand(p);
+
+    numedges = numedges + 4 * (numbhoopa+3);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),(baseb/2-c),-(basel-c),-(basea/2-c),-(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),-(baseb/2-c),-(basel-c),-(basea/2-c),-(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),-(baseb/2-c),-c,-(basea/2-c),(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        -(basea/2-c),(baseb/2-c),-c,-(basea/2-c),(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),(baseb/2-c),-(basel-c),(basea/2-c),-(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),-(baseb/2-c),-(basel-c),(basea/2-c),-(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),-(baseb/2-c),-c,(basea/2-c),(baseb/2-c),-c);
+    ExecuteCommand(p);
+    sprintf(p,"line param %d %d %d %d %d %d",
+        (basea/2-c),(baseb/2-c),-c,(basea/2-c),(baseb/2-c),-(basel-c));
+    ExecuteCommand(p);
+    sprintf(p,"occtransform translate 1 0 0 %d copy %d %de %d %d %d",
+        bhoopbspace,(numbhoopb+1)/2,(numedges+1),(numedges+2),(numedges+3),(numedges+4));
+    ExecuteCommand(p);
+    sprintf(p,"occtransform translate -1 0 0 %d copy %d %de %d %d %d",
+        bhoopbspace,(numbhoopb+1)/2,(numedges+5),(numedges+6),(numedges+7),(numedges+8));
+    ExecuteCommand(p);
+
+    numedges = numedges +  4 * (numbhoopb+3);
+
+    for(i=numedges-4*(numbhoopb+numbhoopa+6)+1;i<=numedges;i=i+1) {
+        sprintf(p,"genselect geomobject add geomobject %de",i);
+        ExecuteCommand(p);
+    }
+    sprintf(p,"elgenerate beam bycurve 10 %d 0 1 %f", numelem, meshsize);
+    ExecuteCommand(p);
+    ExecuteCommand("elgenerate accept");
+    ExecuteCommand("genselect clear");
+
+
+    /* base fix */
+    ExecuteCommand("genselect target node");
+    ExecuteCommand("genselect clear");
+    ExecuteCommand("setnode");
+    ExecuteCommand("genselect propagate on");
+    ExecuteCommand("genselect node add solid 1/F0/0");
+    for(i=0;i<=(125/meshsize);i=i+1) {
+        sprintf(p,"genselect node add solid %d/E11/0",(elembase-5-i));
+        ExecuteCommand(p);
+        sprintf(p,"genselect node add solid %f/E9/0",(elembase-basea/meshsize+5+i));
+        ExecuteCommand(p);
+    };
+    ExecuteCommand("setnode createset 1 1 0 0 0 0");
+
+
+    /* car set */
+    ExecuteCommand("genselect target node");
+    ExecuteCommand("genselect clear");
+    ExecuteCommand("setnode");
+    ExecuteCommand("genselect propagate on");
+    sprintf(p,"genselect node add solid %d/F0/0",(elemcar));
+    ExecuteCommand(p);
+    ExecuteCommand("setnode createset 3 1 0 0 0 0 ");
+    ExecuteCommand("genselect clear");
+
+
+    /* constrained set*/
+    ExecuteCommand("setpart");
+    ExecuteCommand("genselect target part");
+    ExecuteCommand("genselect clear");
+    ExecuteCommand("genselect part add part 1/0");
+    ExecuteCommand("genselect part add part 2/0");
+    ExecuteCommand("genselect part add part 3/0");
+    ExecuteCommand("setpart createset 1 1 0 0 0 0");
+
+    ExecuteCommand("setpart");
+    ExecuteCommand("genselect target part");
+    ExecuteCommand("genselect clear");
+    ExecuteCommand("genselect part add part 10/0");
+    ExecuteCommand("setpart createset 2 1 0 0 0 0");
+
+    ExecuteCommand("setpart");
+    ExecuteCommand("genselect target part");
+    ExecuteCommand("genselect clear");
+    ExecuteCommand("genselect part add part 6/0");
+    ExecuteCommand("genselect part add part 7/0");
+    ExecuteCommand("genselect part add part 8/0");
+    ExecuteCommand("genselect part add part 12/0");
+    ExecuteCommand("setpart createset 3 1 0 0 0 0");
+}
+main();

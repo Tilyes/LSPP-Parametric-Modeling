@@ -1,0 +1,448 @@
+$# LS-PrePost command file (PC column impact model)
+/*  PC 柱水平冲击模型 —— LS-PrePost 命令行脚本（cfile）                        */
+/*  运行方式：LS-PrePost -> File -> Open -> Command File -> 选择本文件 -> Start */
+/*  内容：材料(MAT_*) / 沙漏(HOURGLASS) / 截面(SECTION_*) / Part-Section-MAT 关联 /
+/*        轴压荷载 / 接触 / 约束 / 初速度 / 系统控制 / 输出设置                  */
+/*  注意：边界条件(BOUNDARY)在 LSPP 中运行会卡死，已注释，需在界面里手动添加    */
+$#
+partdata rename 6 "D_column_lr"
+partdata rename 7 "Sleeve"
+partdata rename 8 "U_column_lr"
+partdata rename 9 "Stirrups"
+partdata rename 10 "Foundation_hoop"
+partdata rename 12 "Foot_lr"
+
+$# ########################## Material input ###########################
+KEYWORD INPUT 1
+*MAT_CSCM_CONCRETE_TITLE
+Mat_for_first_concrete
+$#     mid        ro     nplot     incre     irate     erode     recov   itretrc
+         1    2.4e-9         1       0.0         1      1.10       0.5         0
+$#    pred
+       0.0
+$#     fpc      dagg     units
+      35.4      10.0         2
+*END
+keyword updatekind
+MAT_CSCM_CONCRETE
+
+KEYWORD INPUT 2
+*MAT_CSCM_CONCRETE_TITLE
+Mat_for_second_concrete
+$#     mid        ro     nplot     incre     irate     erode     recov   itretrc
+         2    2.4e-9         1       0.0         1      1.10       0.5         0
+$#    pred
+       0.0
+$#     fpc      dagg     units
+      47.4      10.0         2
+*END
+keyword updatekind
+MAT_CSCM_CONCRETE
+
+KEYWORD INPUT 3
+*MAT_ELASTIC_TITLE
+Mat_for_truck
+$#     mid        ro         e        pr        da        db  not used
+         38.00000E-9  200000.0       0.3       0.0       0.0       0.0
+*END
+keyword updatekind
+MAT_RIGID
+
+KEYWORD INPUT 4
+*MAT_PLASTIC_KINEMATIC_TITLE
+Mat_for_col_lr
+$#     mid        ro         e        pr      sigy      etan      beta
+         4    7.8e-9  200000.0       0.3     400.0    1500.0       1.0
+$#     src       srp        fs        vp
+   7.274e7      11.2      0.20       0.0
+*END
+keyword updatekind
+MAT_PLASTIC_KINEMATIC
+
+KEYWORD INPUT 5
+*MAT_PLASTIC_KINEMATIC_TITLE
+Mat_for_sleeve
+$#     mid        ro         e        pr      sigy      etan      beta
+         5    7.8e-9  200000.0       0.3     400.0    1500.0       1.0
+$#     src       srp        fs        vp
+   7.274e7      11.2      0.15       0.0
+*END
+keyword updatekind
+MAT_PLASTIC_KINEMATIC
+KEYWORD INPUT 6
+*MAT_PLASTIC_KINEMATIC_TITLE
+Mat_for_steelborad
+$#     mid        ro         e        pr      sigy      etan      beta
+         6    7.8e-9  210000.0       0.3     400.0    2100.0       1.0
+$#     src       srp        fs        vp
+      40.0       5.0      0.15       0.0
+*END
+keyword updatekind
+MAT_PLASTIC_KINEMATIC
+
+
+
+$# ############################### 沙漏材料系数 ####################################
+KEYWORD INPUT 7
+*HOURGLASS_TITLE
+MAT1
+$#    hgid       ihq        qm       ibq        q1        q2    qb/vdc        qw
+         1         4      0.03         0       1.5      0.06       0.1       0.1
+*END
+keyword updatekind
+HOURGLASS_HOURGLASS
+
+KEYWORD INPUT 8
+*HOURGLASS_TITLE
+MAT2
+$#    hgid       ihq        qm       ibq        q1        q2    qb/vdc        qw
+         2         4      0.03         0       1.5      0.06       0.1       0.1
+*END
+keyword updatekind
+HOURGLASS_HOURGLASS
+
+$# 全局沙漏设置
+KEYWORD INPUT 9
+*CONTROL_HOURGLASS
+$#     ihq        qh
+         4      0.03
+*END
+keyword updatekind
+CONTROL_HOURGLASS
+
+$# ########################## Section defination ##########################
+
+KEYWORD INPUT 10
+*SECTION_SOLID_TITLE
+Section_for_solid
+$#   secid    elform       aet    unused    unused    unused    cohoff   gaskeit
+         1         1         0                                     0.0       0.0
+*END
+keyword updatekind
+SECTION_SOLID
+
+KEYWORD INPUT 11
+*SECTION_BEAM_TITLE
+Section_for_10mm_rebar
+$#   secid    elform      shrf   qr/irid       cst     scoor       nsm     naupd
+         2         1       1.0         2         1       0.0       0.0         0
+$#     ts1       ts2       tt1       tt2     nsloc     ntloc
+      10.0      10.0       0.0       0.0       0.0       0.0
+*END
+keyword updatekind
+SECTION_BEAM
+
+KEYWORD INPUT 12
+*SECTION_BEAM_TITLE
+Section_for_16mm_rebar
+$#   secid    elform      shrf   qr/irid       cst     scoor       nsm     naupd
+         3         1       1.0         2         1       0.0       0.0         0
+$#     ts1       ts2       tt1       tt2     nsloc     ntloc
+      16.0      16.0       0.0       0.0       0.0       0.0
+*END
+keyword updatekind
+SECTION_BEAM
+
+SECTION_BEAM
+KEYWORD INPUT 13
+*SECTION_BEAM_TITLE
+Setion_for_sleeve_32mm
+$#   secid    elform      shrf   qr/irid       cst     scoor       nsm     naupd
+         4         1       1.0         2         1       0.0       0.0         0
+$#     ts1       ts2       tt1       tt2     nsloc     ntloc
+      32.0      32.0       0.0       0.0       0.0       0.0
+*END
+keyword updatekind
+SECTION_BEAM
+
+$# ####################### link-section mat part ################################
+$# partdata assignapply (*PART Parameter/*SECTION Formulation) SECID MID EOSID HGID TMID GRAV ADPOPT
+
+partdata assignapply 0 1 1 0 1 -1 -1 0 1
+partdata assignapply 0 1 2 0 2 -1 -1 0 2
+partdata assignapply 0 1 1 0 1 -1 -1 0 3
+partdata assignapply 0 1 3 0 1 -1 -1 0 4
+partdata assignapply 0 1 6 0 0 -1 -1 0 5
+partdata assignapply 0 3 4 0 0 -1 -1 0 6
+partdata assignapply 0 6 5 0 0 -1 -1 0 7
+partdata assignapply 0 3 4 0 0 -1 -1 0 8
+partdata assignapply 0 2 4 0 0 -1 -1 0 9
+partdata assignapply 0 3 4 0 0 -1 -1 0 10
+partdata assignapply 0 3 4 0 0 -1 -1 0 12
+
+$# ############################# LOAD ############################
+
+$# 轴压加载
+
+KEYWORD INPUT 16
+*DEFINE_CURVE
+$#    lcid      sidr       sfa       sfo      offa      offo    dattyp     lcint
+         1         2       1.0       1.0       0.0       0.0         0         0
+$#                a1                  o1
+                 0.0                 1.0
+              2e10.0                 1.0
+*END
+keyword updatekind
+DEFINE_CURVE
+KEYWORD INPUT 17
+*LOAD_SEGMENT_SET_ID
+$#      id                                                               heading
+         1
+$#    ssid      lcid        sf        at
+         1         1      2.68       0.0
+*END
+keyword updatekind
+LOAD_SEGMENT_SET
+
+
+$# ############################# BOUNDARY ############################
+$# spcdata create set 1 0 0 0 1 0 0 0 0
+$# spcdata create set 2 0 1 0 0 0 0 0 0
+
+$# ############################ CREATE CONTACT CONDITION #########################
+
+KEYWORD INPUT 21
+*CONTACT_AUTOMATIC_SURFACE_TO_SURFACE_ID
+$#     cid                                                                 title
+         1contact_column2car
+$#   surfa     surfb  surfatyp  surfbtyp   saboxid   sbboxid      sapr      sbpr
+         4         3         3         3         0         0         0         0
+$#      fs        fd        dc        vc       vdc    penchk        bt        dt
+      0.15      0.15       0.0       0.0     100.0         0       0.01.00000E20
+$#    sfsa      sfsb      sast      sbst     sfsat     sfsbt       fsf       vsf
+       0.6       0.1       0.0       0.0       1.0       1.0       1.0       1.0
+*END
+keyword updatekind
+CONTACT_AUTOMATIC_SURFACE_TO_SURFACE
+
+KEYWORD INPUT 22
+*CONTACT_AUTOMATIC_SURFACE_TO_SURFACE_TIEBREAK_ID
+$#     cid                                                                 title
+         2Contact_Foundation_to_CIPC
+$#   surfa     surfb  surfatyp  surfbtyp   saboxid   sbboxid      sapr      sbpr
+         1         2         3         3         0         0         0         0
+$#      fs        fd        dc        vc       vdc    penchk        bt        dt
+       0.8       0.8       0.0       0.0       0.0         0       0.01.00000E20
+$#    sfsa      sfsb      sast      sbst     sfsat     sfsbt       fsf       vsf
+       1.0       1.0       0.0       0.0       1.0       1.0       1.0       1.0
+$#  option      nfls      sfls     param    eraten    erates     ct2cn        cn
+         2     0.869     2.956       0.0       0.0       0.0       0.0       0.0
+*END
+keyword updatekind
+*CONTACT_AUTOMATIC_SURFACE_TO_SURFACE_TIEBREAK
+
+KEYWORD INPUT 23
+*CONTACT_AUTOMATIC_SURFACE_TO_SURFACE_TIEBREAK_ID
+$#     cid                                                                 title
+         3Contact_Column_to_CIPC
+$#   surfa     surfb  surfatyp  surfbtyp   saboxid   sbboxid      sapr      sbpr
+         3         2         3         3         0         0         0         0
+$#      fs        fd        dc        vc       vdc    penchk        bt        dt
+       0.8       0.8       0.0       0.0       0.0         0       0.01.00000E20
+$#    sfsa      sfsb      sast      sbst     sfsat     sfsbt       fsf       vsf
+       1.0       1.0       0.0       0.0       1.0       1.0       1.0       1.0
+$#  option      nfls      sfls     param    eraten    erates     ct2cn        cn
+         2     0.869     2.956       0.0       0.0       0.0       0.0       0.0
+*END
+keyword updatekind
+*CONTACT_AUTOMATIC_SURFACE_TO_SURFACE_TIEBREAK
+
+$# ######################## CREATE CONSTRAINED CONDITION ############################
+
+KEYWORD INPUT 1
+*CONSTRAINED_BEAM_IN_SOLID_ID
+$#  coupid                                                                 title
+         1Constrained_lr_in_concrete
+$#   bside      ssid     bstyp     sstyp                        ncoup       cdir
+         3         1         0         0         0         0         0         0
+$#   start       end              axfor                 pssf                xint
+       0.01.00000E20         0         0         0       0.1         0
+*END
+keyword updatekind
+CONSTRAINED_BEAM_IN_SOLID
+
+KEYWORD INPUT 2
+*CONSTRAINED_BEAM_IN_SOLID_ID
+$#  coupid                                                                 title
+         2Constrained_stirrups_in_concrete
+$#   bside      ssid     bstyp     sstyp                        ncoup       cdir
+         2         1         0         0         0         0         0         0
+$#   start       end              axfor                 pssf                xint
+       0.01.00000E20         0         0         0       0.1         0
+*END
+keyword updatekind
+CONSTRAINED_BEAM_IN_SOLID
+
+KEYWORD INPUT 3
+*CONSTRAINED_BEAM_IN_SOLID_ID
+$#  coupid                                                                 title
+         3Constrained_stirrups_in_foundation
+$#   bside      ssid     bstyp     sstyp                        ncoup       cdir
+        10         1         1         1         0         0         0         0
+$#   start       end              axfor                 pssf                xint
+       0.01.00000E20         0         0         0       0.1         0
+*END
+keyword updatekind
+CONSTRAINED_BEAM_IN_SOLID
+
+$# ######################## CREATE VELOCITY CONDITION ###############################
+
+KEYWORD INPUT 40
+*INITIAL_VELOCITY_GENERATION
+$#      id      styp     omega        vx        vy        vz     ivatn      icid
+         4         2       0.0    4000.0       0.0       0.0         0         0
+$#      xc        yc        zc        nx        ny        nz     phase    irigid
+       0.0       0.0       0.0       0.0       0.0       0.0         0         0
+*END
+keyword updatekind
+INITIAL_VELOCITY_GENERATION
+
+$# ######################## SYSTEM CONTRAL ############################
+
+$# 能量控制
+KEYWORD INPUT 27
+*CONTROL_ENERGY
+$#    hgen      rwen    slnten     rylen     irgen     maten     drlen     disen
+         2         2         2         2         1         1         1         1
+*END
+keyword updatekind
+CONTROL_ENERGY
+
+KEYWORD INPUT 102
+*CONTROL_CONTACT
+$#  slsfac    rwpnal    islchk    shlthk    penopt    thkchg     orien    enmass
+       0.1       0.0         1         0         1         0         1         2
+$#  usrstr    usrfrc     nsbcs    interm     xpene     ssthk      ecdt   tiedprj
+         0         0         0         0       4.0         0         0         0
+$#   sfric     dfric       edc       vfc        th     th_sf    pen_sf     ptscl
+       0.0       0.0       0.0       0.0       0.0       0.0       0.0       1.0
+$#  ignore    frceng   skiprwg    outseg   spotstp   spotdel   spothin
+         2         0         0         0         0         0       0.0
+*END
+keyword updatekind
+CONTROL_CONTACT
+
+$# 阻尼设置
+$#
+KEYWORD INPUT 28
+*DAMPING_GLOBAL
+$#    lcid    valdmp       stx       sty       stz       srx       sry       srz
+         0     0.005       0.0       0.0       0.0       0.0       0.0       0.0
+*END
+keyword updatekind
+DAMPING_GLOBAL
+
+$# 系统终止时间
+KEYWORD INPUT 29
+*CONTROL_TERMINATION
+$#  endtim    endcyc     dtmin    endeng    endmas     nosol
+       0.1         0       0.0       0.01.000000E8         0
+*END
+keyword updatekind
+CONTROL_TERMINATION
+
+$# 初始时间步设置
+KEYWORD INPUT 30
+*CONTROL_TIMESTEP
+$#  dtinit    tssfac      isdo    tslimt     dt2ms      lctm     erode     ms1st
+      1e-4       0.0         0       0.0       0.0         0         0         0
+*END
+keyword updatekind
+CONTROL_TIMESTEP
+
+
+KEYWORD INPUT 40
+*CONTROL_DYNAMIC_RELAXATION
+$#  nrcyck     drtol    drfctr    drterm    tssfdr    irelal     edttl    idrflg
+        50      0.05     0.995       0.0       0.0         0      0.04         0
+*END
+keyword updatekind
+CONTROL_DYNAMIC_RELAXATION
+
+
+$# ###################### OUTPUT SETTING ##########################
+
+KEYWORD INPUT 31
+*DATABASE_BINARY_D3PLOT
+$#      dt      lcdt      beam     npltc    psetid
+1.00000E-4         0         0         0         0
+*END
+keyword updatekind
+DATABASE_BINARY_D3PLOT
+
+KEYWORD INPUT 32
+*DATABASE_BINARY_D3THDT
+$#      dt      lcdt      beam     npltc    psetid
+      1e-4         0         0         0         0
+*END
+keyword updatekind
+DATABASE_BINARY_D3THDT
+
+KEYWORD INPUT 33
+*DATABASE_BINARY_D3DUMP
+$#    cycl      lcdt      beam     npltc    psetid
+       0.0         0         0         0         0
+*END
+keyword updatekind
+DATABASE_BINARY_D3DUMP
+
+KEYWORD INPUT 34
+*DATABASE_RCFORC
+$#      dt    binary      lcur     ioopt
+      1e-4         0         0         1
+*END
+keyword updatekind
+DATABASE_RCFORC
+
+KEYWORD INPUT 35
+*DATABASE_EXTENT_BINARY
+$#   neiph     neips    maxint    strflg    sigflg    epsflg    rltflg    engflg
+         4         0         3         1         1         1         1         1
+$#  cmpflg    ieverp    beamip     dcomp      shge     stssz    n3thdt   ialemat
+         0         0         0         1         1         1         2         1
+$# nintsld   pkp_sen      sclp     hydro     msscl     therm    intout    nodout
+         0         0       1.0         0         0         0
+$#    dtdt    resplt     neipb   quadsld    cubsld   deleres
+         0         0         0         0         0         0
+*END
+keyword updatekind
+DATABASE_EXTENT_BINARY
+
+KEYWORD INPUT 36
+*DATABASE_GLSTAT
+$#      dt    binary      lcur     ioopt
+      1e-4          0         0         1
+*END
+keyword updatekind
+DATABASE_GLSTAT
+
+KEYWORD INPUT 37
+*DATABASE_MATSUM
+$#      dt    binary      lcur     ioopt
+      1e-4         0         0         1
+*END
+keyword updatekind
+DATABASE_MATSUM
+
+KEYWORD INPUT 38
+*DATABASE_NCFORC
+$#      dt    binary      lcur     ioopt
+      1e-4         0         0         1
+*END
+keyword updatekind
+DATABASE_NCFORC
+
+KEYWORD INPUT 39
+*DATABASE_NODOUT
+$#      dt    binary      lcur     ioopt
+      1e-4         0         0         1
+*END
+keyword updatekind
+DATABASE_NODOUT
+
+KEYWORD INPUT 41
+*DATABASE_BINARY_D3DRLF
+$#    cycl      lcdt      beam     npltc    psetid
+      50.0         0         0         0         0
+keyword updatekind
+DATABASE_BINARY_D3DRLF
